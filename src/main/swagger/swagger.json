@@ -1,0 +1,5148 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "Welcome to QuantiModo API! QuantiModo makes it easy to retrieve normalized user data from a wide array of devices and applications. [Learn about QuantiModo](https://app.quantimo.do) or contact us at <api@quantimo.do>.\n\nBefore you get started, you will need to:\n* Create an account at [QuantiModo](https://app.quantimo.do)\n* Sign in, and add some data at [https://app.quantimo.do/connect](https://app.quantimo.do/connect) to try out the API for yourself\n* As long as you're signed in, it will use your browser's cookie for authentication.  However, client applications must use OAuth2 tokens to access the API.\n\n## Oauth2 Authentication\nAfter receiving your `client_id` and `client_secret` by emailing at <info@quantimo.do> you can implement OAuth2 authentication to your application using our [OAuth2](#!/oauth2) endpoints.\n\n### Request Authorization Code\nBasically you need to redirect users to `/api/v1/oauth2/authorize` endpoint to get an authorization code with following parameters:\n* `client_id` This is the unique ID that QuantiModo uses to identify your application.\n* `scope` Scopes include basic, readmeasurements, and writemeasurements. The `basic` scope allows you to read user info (displayname, email, etc). The `readmeasurements` scope allows one to read a user's data. The `writemeasurements` scope allows you to write user data. Separate multiple scopes by a space.\n* `redirect_uri` The redirect URI is the URL within your client application that will receive the OAuth2 credentials.\n* `state` An opaque string that is round-tripped in the protocol; that is to say, it is returned as a URI parameter in the Basic flow, and in the URI.\n* `response_type` If the value is code, launches a Basic flow, requiring a POST to the token endpoint to obtain the tokens. If the value is token id_token or id_token token, launches an Implicit flow, requiring the use of Javascript at the redirect URI to retrieve tokens from the URI #fragment.\n\n### Request Access Token\nAfter user approves your access to the given scope, you'll recevive an authorization code to request an access token. This time make a `POST` request to `/api/v1/oauth2/token` with parameters including:\n* `grant_type` Can be `authorization_code` or `refresh_token` since we are getting the `access_token` for the first time we don't have a `refresh_token` so this must be `authorization_code`.\n* `client_id` The client id you used to receive an `authorization_code`.\n* `client_secret` Your client secret which you received with the client id.\n* `code` Authorization code you received with the previous request.\n* `redirect_uri` Your application's redirect url.\n\n### Refreshing Access Token\nAccess tokens expire at some point, to continue using our api you need to refresh them with `refresh_token` you received along with the `access_token`. To do this make a `POST` request to `/api/v1/oauth2/token` with correct parameters, which are:\n* `grant_type` This time grant type must be `refresh_token` since we have it.\n* `client_id` Your application's client id.\n* `client_secret` Your application's client secret.\n* `refresh_token` The refresh token you received with the `access_token`.\n\nEvery request you make to this endpoint will give you a new refresh token and make the old one expired. So you can keep getting new access tokens with new refresh tokens.\n\nYou can read more about OAuth2 from [here](http://oauth.net/2/)\n\n## Example Queries\n### Query Options\nThe standard query options for QuantiModo API are as described in the table below. These are the available query options in QuantiModo API:\n<table>\n    <thead>\n        <tr>\n            <th>Parameter</th>\n            <th>Description</th>\n        </tr>\n    </thead>\n    <tbody>\n        <tr>\n            <td>limit</td>\n            <td>The LIMIT is used to limit the number of results returned. So if you have 1000 results, but only want to the first 10, you would set this to 10 and offset to 0. The maximum limit is 200 records.</td>\n        </tr>\n        <tr>\n            <td>offset</td>\n            <td>Suppose you wanted to show results 11-20. You'd set the offset to 10 and the limit to 10.</td>\n        </tr>\n        <tr>\n            <td>sort</td>\n            <td>Sort by given field. If the field is prefixed with '-', it will sort in descending order.</td>\n        </tr>\n    </tbody>\n</table>\n\n### Pagination Conventions\nSince the maximum limit is 200 records, to get more than that you'll have to make multiple API calls and page through the results. To retrieve all the data, you can iterate through data by using the `limit` and `offset` query parameters.For example, if you want to retrieve data from 61-80 then you can use a query with the following parameters,\n\n`/v1/variables?limit=20&offset=60`\n\nGenerally, you'll be retrieving new or updated user data. To avoid unnecessary API calls, you'll want to store your last refresh time locally.  Initially, it should be set to 0. Then whenever you make a request to get new data, you should limit the returned results to those updated since your last refresh by appending append\n\n`?lastUpdated=(ge)&quot2013-01-D01T01:01:01&quot`\n\nto your request.\n\nAlso for better pagination, you can get link to the records of first, last, next and previous page from response headers:\n* `Total-Count` - Total number of results for given query\n* `Link-First` - Link to get first page records\n* `Link-Last` - Link to get last page records\n* `Link-Prev` - Link to get previous records set\n* `Link-Next` - Link to get next records set\n\nRemember, response header will be only sent when the record set is available. e.g. You will not get a ```Link-Last``` & ```Link-Next``` when you query for the last page.\n\n### Filter operators support\nAPI supports the following operators with filter parameters:\n<br>\n#### Comparison operators\nComparison operators allow you to limit results to those greater than, less than, or equal to a specified value for a specified attribute. These operators can be used with strings, numbers, and dates. The following comparison operators are available:\n* `gt` for `greater than` comparison\n* `ge` for `greater than or equal` comparison\n* `lt` for `less than` comparison\n* `le` for `less than or equal` comparison\n\nThey are included in queries using the following format:\n\n`(<operator>)<value>`\n\nFor example, in order to filter value which is greater than 21, the following query parameter should be used:\n\n`?value=(gt)21`\n<br><br>\n#### Equals/In Operators\nIt also allows filtering by the exact value of an attribute or by a set of values, depending on the type of value passed as a query parameter. If the value contains commas, the parameter is split on commas and used as array input for `IN` filtering, otherwise the exact match is applied. In order to only show records which have the value 42, the following query should be used:\n\n`?value=42`\n\nIn order to filter records which have value 42 or 43, the following query should be used:\n\n`?value=42,43`\n<br><br>\n#### Like operators\nLike operators allow filtering using `LIKE` query. This operator is triggered if exact match operator is used, but value contains `%` sign as the first or last character. In order to filter records which category that start with `Food`, the following query should be used:\n\n`?category=Food%`\n<br><br>\n#### Negation operator\nIt is possible to get negated results of a query by prefixed the operator with `!`. Some examples:\n\n`//filter records except those with value are not 42 or 43`<br>\n`?value=!42,43`\n\n`//filter records with value not greater than 21`<br>\n`?value=!(ge)21`\n<br><br>\n#### Multiple constraints for single attribute\nIt is possible to apply multiple constraints by providing an array of query filters:\n\n`// filter all records which value is greater than 20.2 and less than 20.3`<br>\n`?value[]=(gt)20.2&value[]=(lt)20.3`\n\n`// filter all records which value is greater than 20.2 and less than 20.3 but not 20.2778`<br>\n`?value[]=(gt)20.2&value[]=(lt)20.3&value[]=!20.2778`<br><br>\n",
+    "version" : "2.0",
+    "title" : "Quantimodo API",
+    "termsOfService" : "https://app.quantimo.do/terms/",
+    "contact" : {
+      "email" : "info@quantimodo.do"
+    }
+  },
+  "host" : "app.quantimo.do",
+  "basePath" : "/api/v2",
+  "schemes" : [ "https" ],
+  "consumes" : [ "application/json" ],
+  "produces" : [ "application/json" ],
+  "paths" : {
+    "/aggregatedCorrelations" : {
+      "get" : {
+        "tags" : [ "AggregatedCorrelation" ],
+        "summary" : "Get all AggregatedCorrelations",
+        "description" : "Get all AggregatedCorrelations",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "correlation",
+          "in" : "query",
+          "description" : "correlation",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "cause_id",
+          "in" : "query",
+          "description" : "cause_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "effect_id",
+          "in" : "query",
+          "description" : "effect_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "onset_delay",
+          "in" : "query",
+          "description" : "onset_delay",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "duration_of_action",
+          "in" : "query",
+          "description" : "duration_of_action",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "number_of_pairs",
+          "in" : "query",
+          "description" : "number_of_pairs",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "value_predicting_high_outcome",
+          "in" : "query",
+          "description" : "value_predicting_high_outcome",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "value_predicting_low_outcome",
+          "in" : "query",
+          "description" : "value_predicting_low_outcome",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "optimal_pearson_product",
+          "in" : "query",
+          "description" : "optimal_pearson_product",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "vote",
+          "in" : "query",
+          "description" : "vote",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "number_of_users",
+          "in" : "query",
+          "description" : "number_of_users",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "number_of_correlations",
+          "in" : "query",
+          "description" : "number_of_correlations",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "statistical_significance",
+          "in" : "query",
+          "description" : "statistical_significance",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "cause_unit",
+          "in" : "query",
+          "description" : "cause_unit",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "cause_unit_id",
+          "in" : "query",
+          "description" : "cause_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "cause_changes",
+          "in" : "query",
+          "description" : "cause_changes",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "effect_changes",
+          "in" : "query",
+          "description" : "effect_changes",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "aggregate_qm_score",
+          "in" : "query",
+          "description" : "aggregate_qm_score",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "description" : "status",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "error_message",
+          "in" : "query",
+          "description" : "error_message",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "last_successful_update_time",
+          "in" : "query",
+          "description" : "last_successful_update_time",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "reverse_pearson_correlation_coefficient",
+          "in" : "query",
+          "description" : "reverse_pearson_correlation_coefficient",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "predictive_pearson_correlation_coefficient",
+          "in" : "query",
+          "description" : "predictive_pearson_correlation_coefficient",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "AggregatedCorrelation" ],
+        "summary" : "Store AggregatedCorrelation",
+        "description" : "Store AggregatedCorrelation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "AggregatedCorrelation that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/AggregatedCorrelation"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_1"
+            }
+          }
+        }
+      }
+    },
+    "/aggregatedCorrelations/{id}" : {
+      "get" : {
+        "tags" : [ "AggregatedCorrelation" ],
+        "summary" : "Get AggregatedCorrelation",
+        "description" : "Get AggregatedCorrelation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of AggregatedCorrelation",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_1"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "AggregatedCorrelation" ],
+        "summary" : "Update AggregatedCorrelation",
+        "description" : "Update AggregatedCorrelation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of AggregatedCorrelation",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "AggregatedCorrelation that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/AggregatedCorrelation"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "AggregatedCorrelation" ],
+        "summary" : "Delete AggregatedCorrelation",
+        "description" : "Delete AggregatedCorrelation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of AggregatedCorrelation",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/connections" : {
+      "get" : {
+        "tags" : [ "Connection" ],
+        "summary" : "Get all Connections",
+        "description" : "Get all Connections",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "user_id",
+          "in" : "query",
+          "description" : "user_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "connector_id",
+          "in" : "query",
+          "description" : "connector_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "connect_status",
+          "in" : "query",
+          "description" : "connect_status",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "connect_error",
+          "in" : "query",
+          "description" : "connect_error",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "update_requested_at",
+          "in" : "query",
+          "description" : "update_requested_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "update_status",
+          "in" : "query",
+          "description" : "update_status",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "update_error",
+          "in" : "query",
+          "description" : "update_error",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "last_successful_updated_at",
+          "in" : "query",
+          "description" : "last_successful_updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_3"
+            }
+          }
+        },
+        "security" : [ {
+          "quantimodo_oauth2" : [ "basic" ]
+        } ]
+      },
+      "post" : {
+        "tags" : [ "Connection" ],
+        "summary" : "Store Connection",
+        "description" : "Store Connection",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Connection that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Connection"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_4"
+            }
+          }
+        },
+        "security" : [ {
+          "quantimodo_oauth2" : [ "basic" ]
+        } ]
+      }
+    },
+    "/connections/{id}" : {
+      "get" : {
+        "tags" : [ "Connection" ],
+        "summary" : "Get Connection",
+        "description" : "Get Connection",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Connection",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_4"
+            }
+          }
+        },
+        "security" : [ {
+          "quantimodo_oauth2" : [ "basic" ]
+        } ]
+      },
+      "put" : {
+        "tags" : [ "Connection" ],
+        "summary" : "Update Connection",
+        "description" : "Update Connection",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Connection",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Connection that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Connection"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        },
+        "security" : [ {
+          "quantimodo_oauth2" : [ "basic" ]
+        } ]
+      },
+      "delete" : {
+        "tags" : [ "Connection" ],
+        "summary" : "Delete Connection",
+        "description" : "Delete Connection",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Connection",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        },
+        "security" : [ {
+          "quantimodo_oauth2" : [ "basic" ]
+        } ]
+      }
+    },
+    "/connectors" : {
+      "get" : {
+        "tags" : [ "Connector" ],
+        "summary" : "Get all Connectors",
+        "description" : "Get all Connectors",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "name",
+          "in" : "query",
+          "description" : "name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "display_name",
+          "in" : "query",
+          "description" : "display_name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "image",
+          "in" : "query",
+          "description" : "image",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "get_it_url",
+          "in" : "query",
+          "description" : "get_it_url",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "short_description",
+          "in" : "query",
+          "description" : "short_description",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "long_description",
+          "in" : "query",
+          "description" : "long_description",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "enabled",
+          "in" : "query",
+          "description" : "enabled",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "oauth",
+          "in" : "query",
+          "description" : "oauth",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_5"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Connector" ],
+        "summary" : "Store Connector",
+        "description" : "Store Connector",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Connector that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Connector"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_6"
+            }
+          }
+        }
+      }
+    },
+    "/connectors/{id}" : {
+      "get" : {
+        "tags" : [ "Connector" ],
+        "summary" : "Get Connector",
+        "description" : "Get Connector",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Connector",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_6"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Connector" ],
+        "summary" : "Update Connector",
+        "description" : "Update Connector",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Connector",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Connector that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Connector"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Connector" ],
+        "summary" : "Delete Connector",
+        "description" : "Delete Connector",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Connector",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/correlations" : {
+      "get" : {
+        "tags" : [ "Correlation" ],
+        "summary" : "Get all Correlations",
+        "description" : "Get all Correlations",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "timestamp",
+          "in" : "query",
+          "description" : "timestamp",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "user_id",
+          "in" : "query",
+          "description" : "user_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "correlation",
+          "in" : "query",
+          "description" : "correlation",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "cause_id",
+          "in" : "query",
+          "description" : "cause_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "effect_id",
+          "in" : "query",
+          "description" : "effect_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "onset_delay",
+          "in" : "query",
+          "description" : "onset_delay",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "duration_of_action",
+          "in" : "query",
+          "description" : "duration_of_action",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "number_of_pairs",
+          "in" : "query",
+          "description" : "number_of_pairs",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "value_predicting_high_outcome",
+          "in" : "query",
+          "description" : "value_predicting_high_outcome",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "value_predicting_low_outcome",
+          "in" : "query",
+          "description" : "value_predicting_low_outcome",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "optimal_pearson_product",
+          "in" : "query",
+          "description" : "optimal_pearson_product",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "vote",
+          "in" : "query",
+          "description" : "vote",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "statistical_significance",
+          "in" : "query",
+          "description" : "statistical_significance",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "cause_unit",
+          "in" : "query",
+          "description" : "cause_unit",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "cause_unit_id",
+          "in" : "query",
+          "description" : "cause_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "cause_changes",
+          "in" : "query",
+          "description" : "cause_changes",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "effect_changes",
+          "in" : "query",
+          "description" : "effect_changes",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "qm_score",
+          "in" : "query",
+          "description" : "qm_score",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "error",
+          "in" : "query",
+          "description" : "error",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "reverse_pearson_correlation_coefficient",
+          "in" : "query",
+          "description" : "reverse_pearson_correlation_coefficient",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "predictive_pearson_correlation_coefficient",
+          "in" : "query",
+          "description" : "predictive_pearson_correlation_coefficient",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_7"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Correlation" ],
+        "summary" : "Store Correlation",
+        "description" : "Store Correlation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Correlation that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Correlation"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_8"
+            }
+          }
+        }
+      }
+    },
+    "/correlations/{id}" : {
+      "get" : {
+        "tags" : [ "Correlation" ],
+        "summary" : "Get Correlation",
+        "description" : "Get Correlation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Correlation",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_8"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Correlation" ],
+        "summary" : "Update Correlation",
+        "description" : "Update Correlation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Correlation",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Correlation that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Correlation"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Correlation" ],
+        "summary" : "Delete Correlation",
+        "description" : "Delete Correlation",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Correlation",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/credentials" : {
+      "get" : {
+        "tags" : [ "Credential" ],
+        "summary" : "Get all Credentials",
+        "description" : "Get all Credentials",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "connector_id",
+          "in" : "query",
+          "description" : "connector_id",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "attr_key",
+          "in" : "query",
+          "description" : "attr_key",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "attr_value",
+          "in" : "query",
+          "description" : "attr_value",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_9"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Credential" ],
+        "summary" : "Store Credential",
+        "description" : "Store Credential",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Credential that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Credential"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_10"
+            }
+          }
+        }
+      }
+    },
+    "/credentials/{id}" : {
+      "get" : {
+        "tags" : [ "Credential" ],
+        "summary" : "Get Credential",
+        "description" : "Get Credential",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "connector id",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "name" : "attrKey",
+          "in" : "query",
+          "description" : "attrKey",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_10"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Credential" ],
+        "summary" : "Update Credential",
+        "description" : "Update Credential",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "connector id",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "name" : "attrKey",
+          "in" : "query",
+          "description" : "attrKey",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Credential that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Credential"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Credential" ],
+        "summary" : "Delete Credential",
+        "description" : "Delete Credential",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "connector id",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "name" : "attrKey",
+          "in" : "query",
+          "description" : "attrKey",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/measurements" : {
+      "get" : {
+        "tags" : [ "Measurement" ],
+        "summary" : "Get all Measurements",
+        "description" : "Get all Measurements",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "user_id",
+          "in" : "query",
+          "description" : "user_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "client_id",
+          "in" : "query",
+          "description" : "client_id",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "connector_id",
+          "in" : "query",
+          "description" : "connector_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "variable_id",
+          "in" : "query",
+          "description" : "variable_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "start_time",
+          "in" : "query",
+          "description" : "start_time",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "value",
+          "in" : "query",
+          "description" : "value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "original_value",
+          "in" : "query",
+          "description" : "original_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "duration",
+          "in" : "query",
+          "description" : "duration",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "note",
+          "in" : "query",
+          "description" : "note",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "latitude",
+          "in" : "query",
+          "description" : "latitude",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "longitude",
+          "in" : "query",
+          "description" : "longitude",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "location",
+          "in" : "query",
+          "description" : "location",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "error",
+          "in" : "query",
+          "description" : "error",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_11"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Measurement" ],
+        "summary" : "Store Measurement",
+        "description" : "Store Measurement",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Measurement that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/MeasurementPost"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_11"
+            }
+          }
+        }
+      }
+    },
+    "/measurements/csv" : {
+      "get" : {
+        "tags" : [ "Measurement" ],
+        "summary" : "Get Measurements CSV",
+        "description" : "Get Measurements CSV",
+        "produces" : [ "text/csv" ],
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "type" : "file"
+            }
+          }
+        }
+      }
+    },
+    "/measurements/request_csv" : {
+      "post" : {
+        "tags" : [ "Measurement" ],
+        "summary" : "Post Request for Measurements CSV",
+        "description" : "Post Request for Measurements CSV",
+        "produces" : [ "application/json" ],
+        "parameters" : [ ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "type" : "integer"
+            }
+          }
+        }
+      }
+    },
+    "/measurements/{id}" : {
+      "get" : {
+        "tags" : [ "Measurement" ],
+        "summary" : "Get Measurement",
+        "description" : "Get Measurement",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Measurement",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_12"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Measurement" ],
+        "summary" : "Update Measurement",
+        "description" : "Update Measurement",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Measurement",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Measurement that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Measurement"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Measurement" ],
+        "summary" : "Delete Measurement",
+        "description" : "Delete Measurement",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Measurement",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/sources" : {
+      "get" : {
+        "tags" : [ "Source" ],
+        "summary" : "Get all Sources",
+        "description" : "Get all Sources",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "client_id",
+          "in" : "query",
+          "description" : "client_id",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "name",
+          "in" : "query",
+          "description" : "name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_13"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Source" ],
+        "summary" : "Store Source",
+        "description" : "Store Source",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Source that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Source"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_14"
+            }
+          }
+        }
+      }
+    },
+    "/sources/{id}" : {
+      "get" : {
+        "tags" : [ "Source" ],
+        "summary" : "Get Source",
+        "description" : "Get Source",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Source",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_14"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Source" ],
+        "summary" : "Update Source",
+        "description" : "Update Source",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Source",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Source that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Source"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Source" ],
+        "summary" : "Delete Source",
+        "description" : "Delete Source",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Source",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/unitCategories" : {
+      "get" : {
+        "tags" : [ "UnitCategory" ],
+        "summary" : "Get all UnitCategories",
+        "description" : "Get all UnitCategories",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "name",
+          "in" : "query",
+          "description" : "name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_15"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "UnitCategory" ],
+        "summary" : "Store UnitCategory",
+        "description" : "Store UnitCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "UnitCategory that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/UnitCategory"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_16"
+            }
+          }
+        }
+      }
+    },
+    "/unitCategories/{id}" : {
+      "get" : {
+        "tags" : [ "UnitCategory" ],
+        "summary" : "Get UnitCategory",
+        "description" : "Get UnitCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of UnitCategory",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_16"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "UnitCategory" ],
+        "summary" : "Update UnitCategory",
+        "description" : "Update UnitCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of UnitCategory",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "UnitCategory that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/UnitCategory"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "UnitCategory" ],
+        "summary" : "Delete UnitCategory",
+        "description" : "Delete UnitCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of UnitCategory",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/units" : {
+      "get" : {
+        "tags" : [ "Unit" ],
+        "summary" : "Get all Units",
+        "description" : "Get all Units",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "client_id",
+          "in" : "query",
+          "description" : "client_id",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "name",
+          "in" : "query",
+          "description" : "name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "abbreviated_name",
+          "in" : "query",
+          "description" : "abbreviated_name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "category_id",
+          "in" : "query",
+          "description" : "category_id",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "minimum_value",
+          "in" : "query",
+          "description" : "minimum_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "maximum_value",
+          "in" : "query",
+          "description" : "maximum_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "updated",
+          "in" : "query",
+          "description" : "updated",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "multiply",
+          "in" : "query",
+          "description" : "multiply",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "add",
+          "in" : "query",
+          "description" : "add",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_17"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Unit" ],
+        "summary" : "Store Unit",
+        "description" : "Store Unit",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Unit that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Unit"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_18"
+            }
+          }
+        }
+      }
+    },
+    "/units/{id}" : {
+      "get" : {
+        "tags" : [ "Unit" ],
+        "summary" : "Get Unit",
+        "description" : "Get Unit",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Unit",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_18"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Unit" ],
+        "summary" : "Update Unit",
+        "description" : "Update Unit",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Unit",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Unit that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Unit"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Unit" ],
+        "summary" : "Delete Unit",
+        "description" : "Delete Unit",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Unit",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/updates" : {
+      "get" : {
+        "tags" : [ "Update" ],
+        "summary" : "Get all Updates",
+        "description" : "Get all Updates",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "user_id",
+          "in" : "query",
+          "description" : "user_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "connector_id",
+          "in" : "query",
+          "description" : "connector_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "number_of_measurements",
+          "in" : "query",
+          "description" : "number_of_measurements",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "success",
+          "in" : "query",
+          "description" : "success",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "message",
+          "in" : "query",
+          "description" : "message",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_19"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Update" ],
+        "summary" : "Store Update",
+        "description" : "Store Update",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Update that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Update"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_20"
+            }
+          }
+        }
+      }
+    },
+    "/updates/{id}" : {
+      "get" : {
+        "tags" : [ "Update" ],
+        "summary" : "Get Update",
+        "description" : "Get Update",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Update",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_20"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Update" ],
+        "summary" : "Update Update",
+        "description" : "Update Update",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Update",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Update that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Update"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Update" ],
+        "summary" : "Delete Update",
+        "description" : "Delete Update",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Update",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/userVariables" : {
+      "get" : {
+        "tags" : [ "UserVariable" ],
+        "summary" : "Get all UserVariables",
+        "description" : "Get all UserVariables",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "client_id",
+          "in" : "query",
+          "description" : "client_id",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "variable_id",
+          "in" : "query",
+          "description" : "variable_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "default_unit_id",
+          "in" : "query",
+          "description" : "default_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "minimum_allowed_value",
+          "in" : "query",
+          "description" : "minimum_allowed_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "maximum_allowed_value",
+          "in" : "query",
+          "description" : "maximum_allowed_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "filling_value",
+          "in" : "query",
+          "description" : "filling_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "join_with",
+          "in" : "query",
+          "description" : "join_with",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "onset_delay",
+          "in" : "query",
+          "description" : "onset_delay",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "duration_of_action",
+          "in" : "query",
+          "description" : "duration_of_action",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "variable_category_id",
+          "in" : "query",
+          "description" : "variable_category_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "updated",
+          "in" : "query",
+          "description" : "updated",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "public",
+          "in" : "query",
+          "description" : "public",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "cause_only",
+          "in" : "query",
+          "description" : "cause_only",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "filling_type",
+          "in" : "query",
+          "description" : "filling_type",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "number_of_measurements",
+          "in" : "query",
+          "description" : "number_of_measurements",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "number_of_processed_measurements",
+          "in" : "query",
+          "description" : "number_of_processed_measurements",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "measurements_at_last_analysis",
+          "in" : "query",
+          "description" : "measurements_at_last_analysis",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "last_unit_id",
+          "in" : "query",
+          "description" : "last_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "last_original_unit_id",
+          "in" : "query",
+          "description" : "last_original_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "last_original_value",
+          "in" : "query",
+          "description" : "last_original_value",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "last_value",
+          "in" : "query",
+          "description" : "last_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "last_source_id",
+          "in" : "query",
+          "description" : "last_source_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "number_of_correlations",
+          "in" : "query",
+          "description" : "number_of_correlations",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "description" : "status",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "error_message",
+          "in" : "query",
+          "description" : "error_message",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "last_successful_update_time",
+          "in" : "query",
+          "description" : "last_successful_update_time",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "standard_deviation",
+          "in" : "query",
+          "description" : "standard_deviation",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "variance",
+          "in" : "query",
+          "description" : "variance",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "minimum_recorded_daily_value",
+          "in" : "query",
+          "description" : "minimum_recorded_daily_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "maximum_recorded_daily_value",
+          "in" : "query",
+          "description" : "maximum_recorded_daily_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "mean",
+          "in" : "query",
+          "description" : "mean",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "median",
+          "in" : "query",
+          "description" : "median",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "most_common_unit_id",
+          "in" : "query",
+          "description" : "most_common_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "most_common_value",
+          "in" : "query",
+          "description" : "most_common_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "number_of_unique_daily_values",
+          "in" : "query",
+          "description" : "number_of_unique_daily_values",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "number_of_changes",
+          "in" : "query",
+          "description" : "number_of_changes",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "skewness",
+          "in" : "query",
+          "description" : "skewness",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "kurtosis",
+          "in" : "query",
+          "description" : "kurtosis",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "latitude",
+          "in" : "query",
+          "description" : "latitude",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "longitude",
+          "in" : "query",
+          "description" : "longitude",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "location",
+          "in" : "query",
+          "description" : "location",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "outcome",
+          "in" : "query",
+          "description" : "outcome",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "sources",
+          "in" : "query",
+          "description" : "sources",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "earliest_source_time",
+          "in" : "query",
+          "description" : "earliest_source_time",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "latest_source_time",
+          "in" : "query",
+          "description" : "latest_source_time",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "earliest_measurement_time",
+          "in" : "query",
+          "description" : "earliest_measurement_time",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "latest_measurement_time",
+          "in" : "query",
+          "description" : "latest_measurement_time",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "earliest_filling_time",
+          "in" : "query",
+          "description" : "earliest_filling_time",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "latest_filling_time",
+          "in" : "query",
+          "description" : "latest_filling_time",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_21"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "UserVariable" ],
+        "summary" : "Store UserVariable",
+        "description" : "Store UserVariable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "UserVariable that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/UserVariable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_22"
+            }
+          }
+        }
+      }
+    },
+    "/userVariables/{id}" : {
+      "get" : {
+        "tags" : [ "UserVariable" ],
+        "summary" : "Get UserVariable",
+        "description" : "Get UserVariable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of UserVariable",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_22"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "UserVariable" ],
+        "summary" : "Update UserVariable",
+        "description" : "Update UserVariable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of UserVariable",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "UserVariable that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/UserVariable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "UserVariable" ],
+        "summary" : "Delete UserVariable",
+        "description" : "Delete UserVariable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of UserVariable",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/variableCategories" : {
+      "get" : {
+        "tags" : [ "VariableCategory" ],
+        "summary" : "Get all VariableCategories",
+        "description" : "Get all VariableCategories",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "name",
+          "in" : "query",
+          "description" : "name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "filling_value",
+          "in" : "query",
+          "description" : "filling_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "maximum_allowed_value",
+          "in" : "query",
+          "description" : "maximum_allowed_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "minimum_allowed_value",
+          "in" : "query",
+          "description" : "minimum_allowed_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "duration_of_action",
+          "in" : "query",
+          "description" : "duration_of_action",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "onset_delay",
+          "in" : "query",
+          "description" : "onset_delay",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "combination_operation",
+          "in" : "query",
+          "description" : "combination_operation",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated",
+          "in" : "query",
+          "description" : "updated",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "cause_only",
+          "in" : "query",
+          "description" : "cause_only",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "public",
+          "in" : "query",
+          "description" : "public",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "outcome",
+          "in" : "query",
+          "description" : "outcome",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "image_url",
+          "in" : "query",
+          "description" : "image_url",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "default_unit_id",
+          "in" : "query",
+          "description" : "default_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_23"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "VariableCategory" ],
+        "summary" : "Store VariableCategory",
+        "description" : "Store VariableCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "VariableCategory that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/VariableCategory"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_24"
+            }
+          }
+        }
+      }
+    },
+    "/variableCategories/{id}" : {
+      "get" : {
+        "tags" : [ "VariableCategory" ],
+        "summary" : "Get VariableCategory",
+        "description" : "Get VariableCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of VariableCategory",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_24"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "VariableCategory" ],
+        "summary" : "Update VariableCategory",
+        "description" : "Update VariableCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of VariableCategory",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "VariableCategory that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/VariableCategory"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "VariableCategory" ],
+        "summary" : "Delete VariableCategory",
+        "description" : "Delete VariableCategory",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of VariableCategory",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/variableUserSources" : {
+      "get" : {
+        "tags" : [ "VariableUserSource" ],
+        "summary" : "Get all VariableUserSources",
+        "description" : "Get all VariableUserSources",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "variable_id",
+          "in" : "query",
+          "description" : "variable_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "user_id",
+          "in" : "query",
+          "description" : "user_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "timestamp",
+          "in" : "query",
+          "description" : "timestamp",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_25"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "VariableUserSource" ],
+        "summary" : "Store VariableUserSource",
+        "description" : "Store VariableUserSource",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "VariableUserSource that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/VariableUserSource"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_26"
+            }
+          }
+        }
+      }
+    },
+    "/variableUserSources/{id}" : {
+      "get" : {
+        "tags" : [ "VariableUserSource" ],
+        "summary" : "Get VariableUserSource",
+        "description" : "Get VariableUserSource",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of VariableUserSource",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "name" : "source_id",
+          "in" : "query",
+          "description" : "source id of VariableUserSource",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_26"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "VariableUserSource" ],
+        "summary" : "Update VariableUserSource",
+        "description" : "Update VariableUserSource",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "variable_id of VariableUserSource",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "name" : "source_id",
+          "in" : "query",
+          "description" : "source id of VariableUserSource",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "VariableUserSource that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/VariableUserSource"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "VariableUserSource" ],
+        "summary" : "Delete VariableUserSource",
+        "description" : "Delete VariableUserSource",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "variable_id of VariableUserSource",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "name" : "source_id",
+          "in" : "query",
+          "description" : "source id of VariableUserSource",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/variables" : {
+      "get" : {
+        "tags" : [ "Variable" ],
+        "summary" : "Get all Variables",
+        "description" : "Get all Variables",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "query",
+          "description" : "id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "client_id",
+          "in" : "query",
+          "description" : "client_id",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "parent_id",
+          "in" : "query",
+          "description" : "parent_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "name",
+          "in" : "query",
+          "description" : "name",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "variable_category_id",
+          "in" : "query",
+          "description" : "variable_category_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "default_unit_id",
+          "in" : "query",
+          "description" : "default_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "combination_operation",
+          "in" : "query",
+          "description" : "combination_operation",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "filling_value",
+          "in" : "query",
+          "description" : "filling_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "maximum_allowed_value",
+          "in" : "query",
+          "description" : "maximum_allowed_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "minimum_allowed_value",
+          "in" : "query",
+          "description" : "minimum_allowed_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "onset_delay",
+          "in" : "query",
+          "description" : "onset_delay",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "duration_of_action",
+          "in" : "query",
+          "description" : "duration_of_action",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "public",
+          "in" : "query",
+          "description" : "public",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "cause_only",
+          "in" : "query",
+          "description" : "cause_only",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "most_common_value",
+          "in" : "query",
+          "description" : "most_common_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "most_common_unit_id",
+          "in" : "query",
+          "description" : "most_common_unit_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "standard_deviation",
+          "in" : "query",
+          "description" : "standard_deviation",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "variance",
+          "in" : "query",
+          "description" : "variance",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "mean",
+          "in" : "query",
+          "description" : "mean",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "median",
+          "in" : "query",
+          "description" : "median",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "number_of_measurements",
+          "in" : "query",
+          "description" : "number_of_measurements",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "number_of_unique_values",
+          "in" : "query",
+          "description" : "number_of_unique_values",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "skewness",
+          "in" : "query",
+          "description" : "skewness",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "kurtosis",
+          "in" : "query",
+          "description" : "kurtosis",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "latitude",
+          "in" : "query",
+          "description" : "latitude",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "longitude",
+          "in" : "query",
+          "description" : "longitude",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "location",
+          "in" : "query",
+          "description" : "location",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "description" : "status",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "error_message",
+          "in" : "query",
+          "description" : "error_message",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "last_successful_update_time",
+          "in" : "query",
+          "description" : "last_successful_update_time",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "product_url",
+          "in" : "query",
+          "description" : "product_url",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "image_url",
+          "in" : "query",
+          "description" : "image_url",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "price",
+          "in" : "query",
+          "description" : "price",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "number_of_user_variables",
+          "in" : "query",
+          "description" : "number_of_user_variables",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "outcome",
+          "in" : "query",
+          "description" : "outcome",
+          "required" : false,
+          "type" : "boolean"
+        }, {
+          "name" : "minimum_recorded_value",
+          "in" : "query",
+          "description" : "minimum_recorded_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "maximum_recorded_value",
+          "in" : "query",
+          "description" : "maximum_recorded_value",
+          "required" : false,
+          "type" : "number"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_27"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Variable" ],
+        "summary" : "Store Variable",
+        "description" : "Store Variable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Variable that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Variable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_28"
+            }
+          }
+        }
+      }
+    },
+    "/variables/{id}" : {
+      "get" : {
+        "tags" : [ "Variable" ],
+        "summary" : "Get Variable",
+        "description" : "Get Variable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Variable",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_28"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Variable" ],
+        "summary" : "Update Variable",
+        "description" : "Update Variable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Variable",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Variable that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Variable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Variable" ],
+        "summary" : "Delete Variable",
+        "description" : "Delete Variable",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Variable",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    },
+    "/votes" : {
+      "get" : {
+        "tags" : [ "Vote" ],
+        "summary" : "Get all Votes",
+        "description" : "Get all Votes",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "client_id",
+          "in" : "query",
+          "description" : "client_id",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "user_id",
+          "in" : "query",
+          "description" : "user_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "cause_id",
+          "in" : "query",
+          "description" : "cause_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "effect_id",
+          "in" : "query",
+          "description" : "effect_id",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "value",
+          "in" : "query",
+          "description" : "value",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "created_at",
+          "in" : "query",
+          "description" : "created_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "updated_at",
+          "in" : "query",
+          "description" : "updated_at",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "limit",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "offset",
+          "required" : false,
+          "type" : "integer"
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "description" : "sort",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_29"
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Vote" ],
+        "summary" : "Store Vote",
+        "description" : "Store Vote",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Vote that should be stored",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Vote"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_30"
+            }
+          }
+        }
+      }
+    },
+    "/votes/{id}" : {
+      "get" : {
+        "tags" : [ "Vote" ],
+        "summary" : "Get Vote",
+        "description" : "Get Vote",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Vote",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_30"
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Vote" ],
+        "summary" : "Update Vote",
+        "description" : "Update Vote",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Vote",
+          "required" : true,
+          "type" : "integer"
+        }, {
+          "in" : "body",
+          "name" : "body",
+          "description" : "Vote that should be updated",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/definitions/Vote"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Vote" ],
+        "summary" : "Delete Vote",
+        "description" : "Delete Vote",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "id of Vote",
+          "required" : true,
+          "type" : "integer"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "schema" : {
+              "$ref" : "#/definitions/inline_response_200_2"
+            }
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions" : {
+    "quantimodo_oauth2" : {
+      "type" : "oauth2",
+      "authorizationUrl" : "/api/v2/oauth/authorize",
+      "tokenUrl" : "/api/v2/oauth/access_token",
+      "flow" : "accessCode",
+      "scopes" : {
+        "basic" : "allows you to read user info (displayname, email, etc).",
+        "readmeasurements" : "allows one to read a user's data",
+        "writemeasurements" : "allows you to write user data"
+      }
+    }
+  },
+  "definitions" : {
+    "MeasurementValue" : {
+      "required" : [ "start_time", "value" ],
+      "properties" : {
+        "start_time" : {
+          "type" : "integer",
+          "format" : "int64",
+          "description" : "start_time"
+        },
+        "value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "value"
+        }
+      }
+    },
+    "MeasurementPost" : {
+      "required" : [ "measurements", "source_id", "unit_id", "variable_id" ],
+      "properties" : {
+        "variable_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "variable_id"
+        },
+        "source_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "source_id"
+        },
+        "unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "unit_id"
+        },
+        "measurements" : {
+          "type" : "array",
+          "description" : "measurements",
+          "items" : {
+            "$ref" : "#/definitions/MeasurementValue"
+          }
+        }
+      }
+    },
+    "AggregatedCorrelation" : {
+      "required" : [ "aggregate_qm_score", "cause_changes", "cause_id", "cause_unit", "cause_unit_id", "correlation", "duration_of_action", "effect_changes", "effect_id", "error_message", "last_successful_update_time", "number_of_correlations", "number_of_pairs", "number_of_users", "onset_delay", "optimal_pearson_product", "predictive_pearson_correlation_coefficient", "reverse_pearson_correlation_coefficient", "statistical_significance", "status", "value_predicting_high_outcome", "value_predicting_low_outcome", "vote" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "correlation" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "correlation"
+        },
+        "cause_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "cause_id"
+        },
+        "effect_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "effect_id"
+        },
+        "onset_delay" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "onset_delay"
+        },
+        "duration_of_action" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "duration_of_action"
+        },
+        "number_of_pairs" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "number_of_pairs"
+        },
+        "value_predicting_high_outcome" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "value_predicting_high_outcome"
+        },
+        "value_predicting_low_outcome" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "value_predicting_low_outcome"
+        },
+        "optimal_pearson_product" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "optimal_pearson_product"
+        },
+        "vote" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "vote"
+        },
+        "number_of_users" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "number_of_users"
+        },
+        "number_of_correlations" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "number_of_correlations"
+        },
+        "statistical_significance" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "statistical_significance"
+        },
+        "cause_unit" : {
+          "type" : "string",
+          "description" : "cause_unit"
+        },
+        "cause_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "cause_unit_id"
+        },
+        "cause_changes" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "cause_changes"
+        },
+        "effect_changes" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "effect_changes"
+        },
+        "aggregate_qm_score" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "aggregate_qm_score"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        },
+        "status" : {
+          "type" : "string",
+          "description" : "status"
+        },
+        "error_message" : {
+          "type" : "string",
+          "description" : "error_message"
+        },
+        "last_successful_update_time" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "last_successful_update_time"
+        },
+        "reverse_pearson_correlation_coefficient" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "reverse_pearson_correlation_coefficient"
+        },
+        "predictive_pearson_correlation_coefficient" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "predictive_pearson_correlation_coefficient"
+        }
+      }
+    },
+    "Connection" : {
+      "required" : [ "connector_id" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "user_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "user_id"
+        },
+        "connector_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "connector_id"
+        },
+        "connect_status" : {
+          "type" : "string",
+          "description" : "connect_status"
+        },
+        "connect_error" : {
+          "type" : "string",
+          "description" : "connect_error"
+        },
+        "update_requested_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "update_requested_at"
+        },
+        "update_status" : {
+          "type" : "string",
+          "description" : "update_status"
+        },
+        "update_error" : {
+          "type" : "string",
+          "description" : "update_error"
+        },
+        "last_successful_updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "last_successful_updated_at"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "Connector" : {
+      "required" : [ "display_name", "enabled", "get_it_url", "image", "long_description", "name", "oauth", "short_description" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Connector ID number"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Connector lowercase system name"
+        },
+        "display_name" : {
+          "type" : "string",
+          "description" : "Connector pretty display name"
+        },
+        "image" : {
+          "type" : "string",
+          "description" : "URL to the image of the connector logo"
+        },
+        "get_it_url" : {
+          "type" : "string",
+          "description" : "URL to a site where one can get this device or application"
+        },
+        "short_description" : {
+          "type" : "string",
+          "description" : "Short description"
+        },
+        "long_description" : {
+          "type" : "string",
+          "description" : "Long description"
+        },
+        "enabled" : {
+          "type" : "boolean",
+          "description" : "enabled"
+        },
+        "oauth" : {
+          "type" : "boolean",
+          "description" : "oauth"
+        }
+      }
+    },
+    "Correlation" : {
+      "required" : [ "cause_changes", "cause_id", "cause_unit", "cause_unit_id", "correlation", "duration_of_action", "effect_changes", "effect_id", "error", "number_of_pairs", "onset_delay", "optimal_pearson_product", "predictive_pearson_correlation_coefficient", "qm_score", "reverse_pearson_correlation_coefficient", "statistical_significance", "timestamp", "user_id", "value_predicting_high_outcome", "value_predicting_low_outcome", "vote" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "timestamp" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Time at which correlation was calculated"
+        },
+        "user_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of user that owns this correlation"
+        },
+        "correlation" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Pearson correlation coefficient between cause and effect measurements"
+        },
+        "cause_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "variable ID of the cause variable for which the user desires correlations"
+        },
+        "effect_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "variable ID of the effect variable for which the user desires correlations"
+        },
+        "onset_delay" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "User estimated or default time after cause measurement before a perceivable effect is observed"
+        },
+        "duration_of_action" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Time over which the cause is expected to produce a perceivable effect following the onset delay"
+        },
+        "number_of_pairs" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Number of points that went into the correlation calculation"
+        },
+        "value_predicting_high_outcome" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "cause value that predicts an above average effect value (in default unit for cause variable)"
+        },
+        "value_predicting_low_outcome" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "cause value that predicts a below average effect value (in default unit for cause variable)"
+        },
+        "optimal_pearson_product" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Optimal Pearson Product"
+        },
+        "vote" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Vote"
+        },
+        "statistical_significance" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "A function of the effect size and sample size"
+        },
+        "cause_unit" : {
+          "type" : "string",
+          "description" : "Unit of Cause"
+        },
+        "cause_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Unit ID of Cause"
+        },
+        "cause_changes" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Cause changes"
+        },
+        "effect_changes" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Effect changes"
+        },
+        "qm_score" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "QM Score"
+        },
+        "error" : {
+          "type" : "string",
+          "description" : "error"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        },
+        "reverse_pearson_correlation_coefficient" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Correlation when cause and effect are reversed. For any causal relationship, the forward correlation should exceed the reverse correlation"
+        },
+        "predictive_pearson_correlation_coefficient" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Predictive Pearson Correlation Coefficient"
+        }
+      }
+    },
+    "Credential" : {
+      "required" : [ "connector_id" ],
+      "properties" : {
+        "connector_id" : {
+          "type" : "integer",
+          "description" : "connector_id"
+        },
+        "attr_key" : {
+          "type" : "string",
+          "description" : "attr_key"
+        },
+        "attr_value" : {
+          "type" : "string",
+          "description" : "attr_value"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "Measurement" : {
+      "required" : [ "source_id", "start_time", "unit_id", "value", "variable_id" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "description" : "id"
+        },
+        "user_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of user that owns this measurement"
+        },
+        "client_id" : {
+          "type" : "string",
+          "description" : "client_id"
+        },
+        "connector_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Connector ID"
+        },
+        "variable_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of the variable for which we are creating the measurement records"
+        },
+        "source_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Application or device used to record the measurement values"
+        },
+        "start_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Start Time for the measurement event in ISO 8601"
+        },
+        "value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Converted measurement value in requested unit"
+        },
+        "unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Unit ID of measurement as requested in GET request"
+        },
+        "original_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Original value"
+        },
+        "original_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Unit ID of measurement as originally submitted"
+        },
+        "duration" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "duration of measurement in seconds"
+        },
+        "note" : {
+          "type" : "string",
+          "description" : "Note of measurement"
+        },
+        "latitude" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "latitude"
+        },
+        "longitude" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "longitude"
+        },
+        "location" : {
+          "type" : "string",
+          "description" : "location"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        },
+        "error" : {
+          "type" : "string",
+          "description" : "error"
+        }
+      }
+    },
+    "MeasurementExport" : {
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "description" : "id"
+        },
+        "user_id" : {
+          "type" : "integer",
+          "description" : "ID of User"
+        },
+        "status" : {
+          "type" : "string",
+          "description" : "Status of Measurement Export"
+        },
+        "error_message" : {
+          "type" : "string",
+          "description" : "Error message"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "Source" : {
+      "required" : [ "name" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "client_id" : {
+          "type" : "string",
+          "description" : "client_id"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the application or device"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "Unit" : {
+      "required" : [ "abbreviated_name", "category_id", "name" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "client_id" : {
+          "type" : "string",
+          "description" : "client_id"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Unit name"
+        },
+        "abbreviated_name" : {
+          "type" : "string",
+          "description" : "Unit abbreviation"
+        },
+        "category_id" : {
+          "type" : "integer",
+          "description" : "Unit category ID"
+        },
+        "minimum_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Unit minimum value"
+        },
+        "maximum_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Unit maximum value"
+        },
+        "updated" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "updated"
+        },
+        "default_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of default unit"
+        },
+        "multiply" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Value multiplied to"
+        },
+        "add" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Value which should be added to convert to default unit"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "UnitCategory" : {
+      "required" : [ "name" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "description" : "id"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Unit category name"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "UnitConversion" : {
+      "required" : [ "operation", "step_number", "unit_id", "value" ],
+      "properties" : {
+        "unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "unit_id"
+        },
+        "step_number" : {
+          "type" : "boolean",
+          "description" : "step in the conversion process"
+        },
+        "operation" : {
+          "type" : "boolean",
+          "description" : "0 is add and 1 is multiply"
+        },
+        "value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "number used in the operation"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "Update" : {
+      "required" : [ "connector_id", "message", "number_of_measurements", "success", "user_id" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "user_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "user_id"
+        },
+        "connector_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "connector_id"
+        },
+        "number_of_measurements" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "number_of_measurements"
+        },
+        "success" : {
+          "type" : "boolean",
+          "description" : "success"
+        },
+        "message" : {
+          "type" : "string",
+          "description" : "message"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "UserVariable" : {
+      "required" : [ "variable_id" ],
+      "properties" : {
+        "parent_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of the parent variable if this variable has any parent"
+        },
+        "client_id" : {
+          "type" : "string",
+          "description" : "client_id"
+        },
+        "variable_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of variable"
+        },
+        "default_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of unit to use for this variable"
+        },
+        "minimum_allowed_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Minimum reasonable value for this variable (uses default unit)"
+        },
+        "maximum_allowed_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Maximum reasonable value for this variable (uses default unit)"
+        },
+        "filling_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Value for replacing null measurements"
+        },
+        "join_with" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "The Variable this Variable should be joined with. If the variable is joined with some other variable then it is not shown to user in the list of variables"
+        },
+        "onset_delay" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "How long it takes for a measurement in this variable to take effect"
+        },
+        "duration_of_action" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Estimated duration of time following the onset delay in which a stimulus produces a perceivable effect"
+        },
+        "variable_category_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of variable category"
+        },
+        "updated" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "updated"
+        },
+        "public" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Is variable public"
+        },
+        "cause_only" : {
+          "type" : "boolean",
+          "description" : "A value of 1 indicates that this variable is generally a cause in a causal relationship.  An example of a causeOnly variable would be a variable such as Cloud Cover which would generally not be influenced by the behaviour of the user"
+        },
+        "filling_type" : {
+          "type" : "string",
+          "description" : "0 -> No filling, 1 -> Use filling-value"
+        },
+        "number_of_measurements" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Number of measurements"
+        },
+        "number_of_processed_measurements" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Number of processed measurements"
+        },
+        "measurements_at_last_analysis" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Number of measurements at last analysis"
+        },
+        "last_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of last Unit"
+        },
+        "last_original_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of last original Unit"
+        },
+        "last_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Last Value"
+        },
+        "last_original_value" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Last original value which is stored"
+        },
+        "last_source_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of last source"
+        },
+        "number_of_correlations" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Number of correlations for this variable"
+        },
+        "status" : {
+          "type" : "string",
+          "description" : "status"
+        },
+        "error_message" : {
+          "type" : "string",
+          "description" : "error_message"
+        },
+        "last_successful_update_time" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "When this variable or its settings were last updated"
+        },
+        "standard_deviation" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Standard deviation"
+        },
+        "variance" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Variance"
+        },
+        "minimum_recorded_daily_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Minimum recorded daily value of this variable"
+        },
+        "maximum_recorded_daily_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Maximum recorded daily value of this variable"
+        },
+        "mean" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Mean"
+        },
+        "median" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Median"
+        },
+        "most_common_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Most common Unit ID"
+        },
+        "most_common_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Most common value"
+        },
+        "number_of_unique_daily_values" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Number of unique daily values"
+        },
+        "number_of_changes" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Number of changes"
+        },
+        "skewness" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Skewness"
+        },
+        "kurtosis" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Kurtosis"
+        },
+        "latitude" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Latitude"
+        },
+        "longitude" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Longitude"
+        },
+        "location" : {
+          "type" : "string",
+          "description" : "Location"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        },
+        "outcome" : {
+          "type" : "boolean",
+          "description" : "Outcome variables (those with `outcome` == 1) are variables for which a human would generally want to identify the influencing factors.  These include symptoms of illness, physique, mood, cognitive performance, etc.  Generally correlation calculations are only performed on outcome variables"
+        },
+        "sources" : {
+          "type" : "string",
+          "description" : "Comma-separated list of source names to limit variables to those sources"
+        },
+        "earliest_source_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Earliest source time"
+        },
+        "latest_source_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Latest source time"
+        },
+        "earliest_measurement_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Earliest measurement time"
+        },
+        "latest_measurement_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Latest measurement time"
+        },
+        "earliest_filling_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Earliest filling time"
+        },
+        "latest_filling_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Latest filling time"
+        }
+      }
+    },
+    "Variable" : {
+      "required" : [ "default_unit_id", "name", "variable_category_id" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "client_id" : {
+          "type" : "string",
+          "description" : "client_id"
+        },
+        "parent_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "parent_id"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the variable"
+        },
+        "variable_category_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Category of the variable"
+        },
+        "default_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of the default unit of measurement to use for this variable"
+        },
+        "combination_operation" : {
+          "type" : "string",
+          "description" : "How to combine values of this variable (for instance, to see a summary of the values over a month) 0 for sum OR 1 for mean"
+        },
+        "filling_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "filling_value"
+        },
+        "maximum_allowed_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "maximum_allowed_value"
+        },
+        "minimum_allowed_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "minimum_allowed_value"
+        },
+        "onset_delay" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "onset_delay"
+        },
+        "duration_of_action" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "duration_of_action"
+        },
+        "public" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "public"
+        },
+        "cause_only" : {
+          "type" : "boolean",
+          "description" : "cause_only"
+        },
+        "most_common_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "most_common_value"
+        },
+        "most_common_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "most_common_unit_id"
+        },
+        "standard_deviation" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "standard_deviation"
+        },
+        "variance" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "variance"
+        },
+        "mean" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "mean"
+        },
+        "median" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "median"
+        },
+        "number_of_measurements" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "number_of_measurements"
+        },
+        "number_of_unique_values" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "number_of_unique_values"
+        },
+        "skewness" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "skewness"
+        },
+        "kurtosis" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "kurtosis"
+        },
+        "status" : {
+          "type" : "string",
+          "description" : "status"
+        },
+        "error_message" : {
+          "type" : "string",
+          "description" : "error_message"
+        },
+        "last_successful_update_time" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "last_successful_update_time"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        },
+        "product_url" : {
+          "type" : "string",
+          "description" : "product_url"
+        },
+        "image_url" : {
+          "type" : "string",
+          "description" : "image_url"
+        },
+        "price" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "price"
+        },
+        "number_of_user_variables" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "number_of_user_variables"
+        },
+        "outcome" : {
+          "type" : "boolean",
+          "description" : "outcome"
+        },
+        "minimum_recorded_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "minimum_recorded_value"
+        },
+        "maximum_recorded_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "maximum_recorded_value"
+        }
+      }
+    },
+    "VariableCategory" : {
+      "required" : [ "name" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "description" : "id"
+        },
+        "name" : {
+          "type" : "string",
+          "description" : "Name of the category"
+        },
+        "filling_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Value for replacing null measurements"
+        },
+        "maximum_allowed_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Maximum recorded value of this category"
+        },
+        "minimum_allowed_value" : {
+          "type" : "number",
+          "format" : "float",
+          "description" : "Minimum recorded value of this category"
+        },
+        "duration_of_action" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "How long the effect of a measurement in this variable lasts"
+        },
+        "onset_delay" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "How long it takes for a measurement in this variable to take effect"
+        },
+        "combination_operation" : {
+          "type" : "string",
+          "description" : "How to combine values of this variable (for instance, to see a summary of the values over a month) 0 for sum OR 1 for mean"
+        },
+        "updated" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "updated"
+        },
+        "cause_only" : {
+          "type" : "boolean",
+          "description" : "A value of 1 indicates that this category is generally a cause in a causal relationship.  An example of a causeOnly category would be a category such as Work which would generally not be influenced by the behaviour of the user"
+        },
+        "public" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Is category public"
+        },
+        "outcome" : {
+          "type" : "boolean",
+          "description" : "outcome"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        },
+        "image_url" : {
+          "type" : "string",
+          "description" : "Image URL"
+        },
+        "default_unit_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of the default unit for the category"
+        }
+      }
+    },
+    "VariableUserSource" : {
+      "required" : [ "earliest_measurement_time", "latest_measurement_time", "source_id", "timestamp", "variable_id" ],
+      "properties" : {
+        "user_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of User"
+        },
+        "variable_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of variable"
+        },
+        "source_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of source"
+        },
+        "timestamp" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Time that this measurement occurred Uses epoch minute (epoch time divided by 60)"
+        },
+        "earliest_measurement_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Earliest measurement time"
+        },
+        "latest_measurement_time" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Latest measurement time"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "Vote" : {
+      "required" : [ "cause_id", "client_id", "effect_id", "user_id", "value" ],
+      "properties" : {
+        "id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "id"
+        },
+        "client_id" : {
+          "type" : "string",
+          "description" : "client_id"
+        },
+        "user_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of User"
+        },
+        "cause_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of cause variable"
+        },
+        "effect_id" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "ID of effect variable"
+        },
+        "value" : {
+          "type" : "integer",
+          "format" : "int32",
+          "description" : "Value of Vote"
+        },
+        "created_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "created_at"
+        },
+        "updated_at" : {
+          "type" : "string",
+          "format" : "date-time",
+          "description" : "updated_at"
+        }
+      }
+    },
+    "inline_response_200" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/AggregatedCorrelation"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_1" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/AggregatedCorrelation"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_2" : {
+      "properties" : {
+        "data" : {
+          "type" : "string"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_3" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Connection"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_4" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Connection"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_5" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Connector"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_6" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Connector"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_7" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Correlation"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_8" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Correlation"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_9" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Credential"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_10" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Credential"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_11" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Measurement"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_12" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Measurement"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_13" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Source"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_14" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Source"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_15" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/UnitCategory"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_16" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/UnitCategory"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_17" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Unit"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_18" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Unit"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_19" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Update"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_20" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Update"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_21" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/UserVariable"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_22" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/UserVariable"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_23" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/VariableCategory"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_24" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/VariableCategory"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_25" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/VariableUserSource"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_26" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/VariableUserSource"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_27" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Variable"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_28" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Variable"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_29" : {
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Vote"
+          }
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "inline_response_200_30" : {
+      "properties" : {
+        "data" : {
+          "$ref" : "#/definitions/Vote"
+        },
+        "success" : {
+          "type" : "boolean"
+        }
+      }
+    }
+  }
+}
