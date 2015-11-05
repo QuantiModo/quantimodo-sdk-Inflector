@@ -15,7 +15,7 @@ import io.swagger.model.InlineResponse20026;
 import io.swagger.model.VariableUserSource;
 import io.swagger.model.InlineResponse2002;
 
-@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2015-11-03T22:24:05.648Z")
+@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2015-11-05T03:15:48.316Z")
 public class VariableUserSourcesController  {
   /** 
    * Uncomment and implement as you see fit.  These operations will map

@@ -15,7 +15,7 @@ import io.swagger.model.Connector;
 import io.swagger.model.InlineResponse2006;
 import io.swagger.model.InlineResponse2002;
 
-@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2015-11-03T22:24:05.648Z")
+@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2015-11-05T03:15:48.316Z")
 public class ConnectorsController  {
   /** 
    * Uncomment and implement as you see fit.  These operations will map

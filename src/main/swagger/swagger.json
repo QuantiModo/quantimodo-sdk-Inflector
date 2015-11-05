@@ -1281,7 +1281,7 @@
       "get" : {
         "tags" : [ "Measurement" ],
         "summary" : "Get Measurements CSV",
-        "description" : "Get Measurements CSV",
+        "description" : "Download a CSV containing all user measurements",
         "produces" : [ "text/csv" ],
         "parameters" : [ ],
         "responses" : {
@@ -1298,7 +1298,7 @@
       "post" : {
         "tags" : [ "Measurement" ],
         "summary" : "Post Request for Measurements CSV",
-        "description" : "Post Request for Measurements CSV",
+        "description" : "Use this endpoint to schedule a CSV export containing all user measurements to be emailed to the user within 24 hours.",
         "produces" : [ "application/json" ],
         "parameters" : [ ],
         "responses" : {
