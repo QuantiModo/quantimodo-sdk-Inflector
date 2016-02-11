@@ -5,16 +5,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import io.swagger.model.UserVariableRelationship;
+import io.swagger.model.VariableUserSource;
 
 
 
 
 
 @javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2016-02-09T02:16:46.349Z")
-public class InlineResponse20029   {
+public class InlineResponse20033   {
   
-  private UserVariableRelationship data = null;
+  private VariableUserSource data = null;
   private Boolean success = null;
 
   
@@ -23,10 +23,10 @@ public class InlineResponse20029   {
   
   @ApiModelProperty(value = "")
   @JsonProperty("data")
-  public UserVariableRelationship getData() {
+  public VariableUserSource getData() {
     return data;
   }
-  public void setData(UserVariableRelationship data) {
+  public void setData(VariableUserSource data) {
     this.data = data;
   }
 
@@ -53,9 +53,9 @@ public class InlineResponse20029   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    InlineResponse20029 inlineResponse20029 = (InlineResponse20029) o;
-    return Objects.equals(data, inlineResponse20029.data) &&
-        Objects.equals(success, inlineResponse20029.success);
+    InlineResponse20033 inlineResponse20033 = (InlineResponse20033) o;
+    return Objects.equals(data, inlineResponse20033.data) &&
+        Objects.equals(success, inlineResponse20033.success);
   }
 
   @Override
@@ -66,7 +66,7 @@ public class InlineResponse20029   {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class InlineResponse20029 {\n");
+    sb.append("class InlineResponse20033 {\n");
     
     sb.append("    data: ").append(toIndentedString(data)).append("\n");
     sb.append("    success: ").append(toIndentedString(success)).append("\n");

@@ -10,12 +10,12 @@ import java.util.List;
 
 import io.swagger.model.*;
 
-import io.swagger.model.InlineResponse20019;
+import io.swagger.model.InlineResponse2007;
+import io.swagger.model.InlineResponse20028;
 import io.swagger.model.Update;
-import io.swagger.model.InlineResponse20020;
 import io.swagger.model.InlineResponse2002;
 
-@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2015-11-05T03:15:48.316Z")
+@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2016-02-09T02:16:46.349Z")
 public class UpdatesController  {
   /** 
    * Uncomment and implement as you see fit.  These operations will map
@@ -24,31 +24,31 @@ public class UpdatesController  {
    **/
 
   /*
-    public ResponseContext updatesGet(RequestContext request , Integer userId, Integer connectorId, Integer numberOfMeasurements, Boolean success, String message, String createdAt, String updatedAt, Integer limit, Integer offset, String sort) {
+    public ResponseContext updatesGet(RequestContext request , String accessToken, Integer userId, Integer connectorId, Integer numberOfMeasurements, Boolean success, String message, String createdAt, String updatedAt, Integer limit, Integer offset, String sort) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext updatesPost(RequestContext request , Update body) {
+    public ResponseContext updatesPost(RequestContext request , String accessToken, Update body) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext updatesIdGet(RequestContext request , Integer id) {
+    public ResponseContext updatesIdGet(RequestContext request , Integer id, String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext updatesIdPut(RequestContext request , Integer id, Update body) {
+    public ResponseContext updatesIdPut(RequestContext request , Integer id, String accessToken, Update body) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext updatesIdDelete(RequestContext request , Integer id) {
+    public ResponseContext updatesIdDelete(RequestContext request , Integer id, String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */

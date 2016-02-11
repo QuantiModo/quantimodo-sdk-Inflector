@@ -10,15 +10,15 @@ import java.util.List;
 
 import io.swagger.model.*;
 
-import io.swagger.model.InlineResponse20011;
 import java.math.BigDecimal;
+import io.swagger.model.InlineResponse2005;
 import io.swagger.model.MeasurementPost;
 import java.io.File;
-import io.swagger.model.InlineResponse20012;
+import io.swagger.model.InlineResponse20020;
 import io.swagger.model.Measurement;
 import io.swagger.model.InlineResponse2002;
 
-@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2015-11-05T03:15:48.316Z")
+@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2016-02-09T02:16:46.349Z")
 public class MeasurementsController  {
   /** 
    * Uncomment and implement as you see fit.  These operations will map
@@ -27,43 +27,43 @@ public class MeasurementsController  {
    **/
 
   /*
-    public ResponseContext measurementsGet(RequestContext request , Integer userId, String clientId, Integer connectorId, Integer variableId, Integer startTime, BigDecimal value, BigDecimal originalValue, Integer duration, String note, BigDecimal latitude, BigDecimal longitude, String location, String createdAt, String updatedAt, String error, Integer limit, Integer offset, String sort) {
+    public ResponseContext measurementsGet(RequestContext request , String accessToken, Integer userId, String clientId, Integer connectorId, Integer variableId, Integer sourceId, String startTime, BigDecimal value, Integer unitId, BigDecimal originalValue, Integer originalUnitId, Integer duration, String note, BigDecimal latitude, BigDecimal longitude, String location, String createdAt, String updatedAt, String error, Integer limit, Integer offset, String sort) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext measurementsPost(RequestContext request , MeasurementPost body) {
+    public ResponseContext measurementsPost(RequestContext request , String accessToken, MeasurementPost body) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext measurementsCsvGet(RequestContext request ) {
+    public ResponseContext measurementsCsvGet(RequestContext request , String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext measurementsRequestCsvPost(RequestContext request ) {
+    public ResponseContext measurementsRequestCsvPost(RequestContext request , String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext measurementsIdGet(RequestContext request , Integer id) {
+    public ResponseContext measurementsIdGet(RequestContext request , Integer id, String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext measurementsIdPut(RequestContext request , Integer id, Measurement body) {
+    public ResponseContext measurementsIdPut(RequestContext request , Integer id, String accessToken, Measurement body) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext measurementsIdDelete(RequestContext request , Integer id) {
+    public ResponseContext measurementsIdDelete(RequestContext request , Integer id, String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */

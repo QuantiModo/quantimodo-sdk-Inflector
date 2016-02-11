@@ -16,7 +16,7 @@ import io.swagger.model.AggregatedCorrelation;
 import io.swagger.model.InlineResponse2001;
 import io.swagger.model.InlineResponse2002;
 
-@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2015-11-05T03:15:48.316Z")
+@javax.annotation.Generated(value = "class io.swagger.codegen.languages.JavaInflectorServerCodegen", date = "2016-02-09T02:16:46.349Z")
 public class AggregatedCorrelationsController  {
   /** 
    * Uncomment and implement as you see fit.  These operations will map
@@ -25,31 +25,31 @@ public class AggregatedCorrelationsController  {
    **/
 
   /*
-    public ResponseContext aggregatedCorrelationsGet(RequestContext request , BigDecimal correlation, Integer causeId, Integer effectId, Integer onsetDelay, Integer durationOfAction, Integer numberOfPairs, BigDecimal valuePredictingHighOutcome, BigDecimal valuePredictingLowOutcome, BigDecimal optimalPearsonProduct, BigDecimal vote, Integer numberOfUsers, Integer numberOfCorrelations, BigDecimal statisticalSignificance, String causeUnit, Integer causeUnitId, Integer causeChanges, Integer effectChanges, BigDecimal aggregateQmScore, String createdAt, String updatedAt, String status, String errorMessage, String lastSuccessfulUpdateTime, BigDecimal reversePearsonCorrelationCoefficient, BigDecimal predictivePearsonCorrelationCoefficient, Integer limit, Integer offset, String sort) {
+    public ResponseContext aggregatedCorrelationsGet(RequestContext request , String accessToken, BigDecimal correlation, Integer causeId, Integer effectId, Integer onsetDelay, Integer durationOfAction, Integer numberOfPairs, BigDecimal valuePredictingHighOutcome, BigDecimal valuePredictingLowOutcome, BigDecimal optimalPearsonProduct, Integer numberOfUsers, Integer numberOfCorrelations, BigDecimal statisticalSignificance, String causeUnit, Integer causeUnitId, Integer causeChanges, Integer effectChanges, BigDecimal aggregateQmScore, String createdAt, String updatedAt, String status, String errorMessage, String lastSuccessfulUpdateTime, BigDecimal reversePearsonCorrelationCoefficient, BigDecimal predictivePearsonCorrelationCoefficient, Integer limit, Integer offset, String sort) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext aggregatedCorrelationsPost(RequestContext request , AggregatedCorrelation body) {
+    public ResponseContext aggregatedCorrelationsPost(RequestContext request , String accessToken, AggregatedCorrelation body) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext aggregatedCorrelationsIdGet(RequestContext request , Integer id) {
+    public ResponseContext aggregatedCorrelationsIdGet(RequestContext request , Integer id, String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext aggregatedCorrelationsIdPut(RequestContext request , Integer id, AggregatedCorrelation body) {
+    public ResponseContext aggregatedCorrelationsIdPut(RequestContext request , Integer id, String accessToken, AggregatedCorrelation body) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
 
   /*
-    public ResponseContext aggregatedCorrelationsIdDelete(RequestContext request , Integer id) {
+    public ResponseContext aggregatedCorrelationsIdDelete(RequestContext request , Integer id, String accessToken) {
         return new ResponseContext().status(Status.INTERNAL_SERVER_ERROR).entity( "Not implemented" );
     }
   */
