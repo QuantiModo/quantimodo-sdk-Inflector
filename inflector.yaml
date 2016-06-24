@@ -1,58 +1,70 @@
 controllerPackage: io.swagger.handler
 modelPackage:  io.swagger.model
-swaggerUrl: ./src/main/swagger/swagger.json
+swaggerUrl: ./src/main/swagger/swagger.yaml
 modelMappings:
-  MeasurementValue : io.swagger.model.MeasurementValue
-  MeasurementPost : io.swagger.model.MeasurementPost
-  AggregatedCorrelation : io.swagger.model.AggregatedCorrelation
-  Connection : io.swagger.model.Connection
-  Connector : io.swagger.model.Connector
-  Correlation : io.swagger.model.Correlation
-  Credential : io.swagger.model.Credential
-  Measurement : io.swagger.model.Measurement
-  MeasurementExport : io.swagger.model.MeasurementExport
-  Source : io.swagger.model.Source
-  Unit : io.swagger.model.Unit
-  UnitCategory : io.swagger.model.UnitCategory
-  UnitConversion : io.swagger.model.UnitConversion
-  Update : io.swagger.model.Update
-  UserVariable : io.swagger.model.UserVariable
-  Variable : io.swagger.model.Variable
-  VariableCategory : io.swagger.model.VariableCategory
-  VariableUserSource : io.swagger.model.VariableUserSource
-  Vote : io.swagger.model.Vote
-  InlineResponse200 : io.swagger.model.InlineResponse200
-  InlineResponse2001 : io.swagger.model.InlineResponse2001
-  InlineResponse2002 : io.swagger.model.InlineResponse2002
-  InlineResponse2003 : io.swagger.model.InlineResponse2003
-  InlineResponse2004 : io.swagger.model.InlineResponse2004
-  InlineResponse2005 : io.swagger.model.InlineResponse2005
-  InlineResponse2006 : io.swagger.model.InlineResponse2006
-  InlineResponse2007 : io.swagger.model.InlineResponse2007
-  InlineResponse2008 : io.swagger.model.InlineResponse2008
-  InlineResponse2009 : io.swagger.model.InlineResponse2009
-  InlineResponse20010 : io.swagger.model.InlineResponse20010
-  InlineResponse20011 : io.swagger.model.InlineResponse20011
-  InlineResponse20012 : io.swagger.model.InlineResponse20012
-  InlineResponse20013 : io.swagger.model.InlineResponse20013
-  InlineResponse20014 : io.swagger.model.InlineResponse20014
-  InlineResponse20015 : io.swagger.model.InlineResponse20015
-  InlineResponse20016 : io.swagger.model.InlineResponse20016
-  InlineResponse20017 : io.swagger.model.InlineResponse20017
-  InlineResponse20018 : io.swagger.model.InlineResponse20018
-  InlineResponse20019 : io.swagger.model.InlineResponse20019
-  InlineResponse20020 : io.swagger.model.InlineResponse20020
-  InlineResponse20021 : io.swagger.model.InlineResponse20021
-  InlineResponse20022 : io.swagger.model.InlineResponse20022
-  InlineResponse20023 : io.swagger.model.InlineResponse20023
-  InlineResponse20024 : io.swagger.model.InlineResponse20024
-  InlineResponse20025 : io.swagger.model.InlineResponse20025
-  InlineResponse20026 : io.swagger.model.InlineResponse20026
-  InlineResponse20027 : io.swagger.model.InlineResponse20027
-  InlineResponse20028 : io.swagger.model.InlineResponse20028
-  InlineResponse20029 : io.swagger.model.InlineResponse20029
-  InlineResponse20030 : io.swagger.model.InlineResponse20030
-  
+  # to enable explicit mappings, use this syntax:
+  DefinitionFromSwaggerSpecification: fully.qualified.path.to.Model
+  CommonResponse : io.swagger.model.CommonResponse
+Connection : io.swagger.model.Connection
+Connector : io.swagger.model.Connector
+ConnectorInfo : io.swagger.model.ConnectorInfo
+ConnectorInfoHistoryItem : io.swagger.model.ConnectorInfoHistoryItem
+ConnectorInstruction : io.swagger.model.ConnectorInstruction
+ConversionStep : io.swagger.model.ConversionStep
+Correlation : io.swagger.model.Correlation
+Credential : io.swagger.model.Credential
+HumanTime : io.swagger.model.HumanTime
+InlineResponse200 : io.swagger.model.InlineResponse200
+InlineResponse2001 : io.swagger.model.InlineResponse2001
+InlineResponse20010 : io.swagger.model.InlineResponse20010
+InlineResponse20011 : io.swagger.model.InlineResponse20011
+InlineResponse20012 : io.swagger.model.InlineResponse20012
+InlineResponse2002 : io.swagger.model.InlineResponse2002
+InlineResponse2003 : io.swagger.model.InlineResponse2003
+InlineResponse2004 : io.swagger.model.InlineResponse2004
+InlineResponse2005 : io.swagger.model.InlineResponse2005
+InlineResponse2006 : io.swagger.model.InlineResponse2006
+InlineResponse2007 : io.swagger.model.InlineResponse2007
+InlineResponse2008 : io.swagger.model.InlineResponse2008
+InlineResponse2009 : io.swagger.model.InlineResponse2009
+JsonErrorResponse : io.swagger.model.JsonErrorResponse
+Measurement : io.swagger.model.Measurement
+MeasurementDelete : io.swagger.model.MeasurementDelete
+MeasurementRange : io.swagger.model.MeasurementRange
+MeasurementSet : io.swagger.model.MeasurementSet
+MeasurementSource : io.swagger.model.MeasurementSource
+Pairs : io.swagger.model.Pairs
+Permission : io.swagger.model.Permission
+PostCorrelation : io.swagger.model.PostCorrelation
+PostVote : io.swagger.model.PostVote
+TrackingReminder : io.swagger.model.TrackingReminder
+TrackingReminderDelete : io.swagger.model.TrackingReminderDelete
+TrackingReminderNotification : io.swagger.model.TrackingReminderNotification
+TrackingReminderNotificationSkip : io.swagger.model.TrackingReminderNotificationSkip
+TrackingReminderNotificationSnooze : io.swagger.model.TrackingReminderNotificationSnooze
+TrackingReminderNotificationTrack : io.swagger.model.TrackingReminderNotificationTrack
+Unit : io.swagger.model.Unit
+UnitCategory : io.swagger.model.UnitCategory
+Update : io.swagger.model.Update
+User : io.swagger.model.User
+UserTag : io.swagger.model.UserTag
+UserTokenFailedResponse : io.swagger.model.UserTokenFailedResponse
+UserTokenRequest : io.swagger.model.UserTokenRequest
+UserTokenRequestInnerUserField : io.swagger.model.UserTokenRequestInnerUserField
+UserTokenSuccessfulResponse : io.swagger.model.UserTokenSuccessfulResponse
+UserTokenSuccessfulResponseInnerUserField : io.swagger.model.UserTokenSuccessfulResponseInnerUserField
+UserVariable : io.swagger.model.UserVariable
+UserVariableRelationship : io.swagger.model.UserVariableRelationship
+UserVariables : io.swagger.model.UserVariables
+ValueObject : io.swagger.model.ValueObject
+Variable : io.swagger.model.Variable
+VariableCategory : io.swagger.model.VariableCategory
+VariableNew : io.swagger.model.VariableNew
+VariableUserSource : io.swagger.model.VariableUserSource
+VariablesNew : io.swagger.model.VariablesNew
+Vote : io.swagger.model.Vote
+VoteDelete : io.swagger.model.VoteDelete
+
 entityProcessors:
   - json
   - xml
